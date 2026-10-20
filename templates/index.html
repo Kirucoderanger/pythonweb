@@ -32,6 +32,12 @@
     <!-- Display the result if it exists -->
     {% if result is not none %}
         <h3>Result: {{ result }}</h3>
+        <h3>History:</h3>
+        <ul>
+            {% for calc in history %}
+                <li>{{ calc.num1 }} * {{ calc.num2 }} = {{ calc.result }}</li>
+            {% endfor %}
+        </ul>
     {% endif %}
 
 </body>
