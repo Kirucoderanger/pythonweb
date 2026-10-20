@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Two Numbers</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        .form-group { margin-bottom: 15px; }
+        input[type="number"] { padding: 8px; width: 200px; }
+        button { padding: 8px 15px; background-color: #007BFF; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <h2>Add Two Numbers with Python</h2>
+    
+    <!-- The form sends data back to our Flask script via POST -->
+    <form method="POST">
+        <div class="form-group">
+            <label for="num1">First Number:</label><br>
+            <input type="number" step="any" name="num1" id="num1" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="num2">Second Number:</label><br>
+            <input type="number" step="any" name="num2" id="num2" required>
+        </div>
+        
+        <button type="submit">Calculate Sum</button>
+    </form>
+
+    <!-- Display the result if it exists -->
+    {% if result is not none %}
+        <h3>Result: {{ result }}</h3>
+    {% endif %}
+
+</body>
+</html>
