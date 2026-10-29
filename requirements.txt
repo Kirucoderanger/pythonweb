@@ -4,3 +4,6 @@ psycopg2-binary==2.9.9
 gunicorn==22.0.0
 Flask-Login>=0.6.3,<0.7
 Flask-Migrate>=4.0,<5.0
+python-dotenv>=1.0,<2.0
+
+

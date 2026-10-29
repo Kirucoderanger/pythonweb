@@ -1,11 +1,57 @@
 
 import os
 import math
+#from django.contrib import auth
 from flask import Flask, render_template, request
-#from flask_sqlalchemy import SQLAlchemy
+from flask_login import current_user
+from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
+from extensions import db, migrate, login_manager
+
+load_dotenv()
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+if not app.config["SECRET_KEY"]:
+    raise RuntimeError(
+        "SECRET_KEY is missing. Set it in your local .env file."
+    )
+app.config["DATABASE_URL"] = os.getenv("DATABASE_URL",
+    "sqlite:///stud_calculator.db",)
+if not app.config["DATABASE_URL"]:
+    raise RuntimeError(
+        "DATABASE_URL is missing. Set it in your local .env file."
+    )
+    
+# Normalize older Render PostgreSQL URLs if necessary.
+if app.config["DATABASE_URL"].startswith("postgres://"):
+    app.config["DATABASE_URL"] = app.config["DATABASE_URL"].replace("postgres://", "postgresql://", 1)
 
+app.config["SQLALCHEMY_DATABASE_URI"] = app.config["DATABASE_URL"]
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = (
+    os.environ.get("COOKIE_SECURE", "false").lower() == "true"
+)
+
+db.init_app(app)
+migrate.init_app(app, db)
+login_manager.init_app(app)
+
+
+from models import User, SavedProject, CalculationHistory
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        return db.session.get(User, int(user_id))
+    except (ValueError, TypeError):
+        return None
+
+# Register the authentication blueprint during application setup.
+from auth import auth
+app.register_blueprint(auth)
 
 k2data = {
         "pinpin": 1.74,
@@ -15,6 +61,9 @@ k2data = {
     
 @app.route("/", methods=["GET", "POST"])
 def home():
+    
+    #from auth import auth
+    #app.register_blueprint(auth)
     
     
     k2 = float(request.form.get("k2data", "1.74"))
