@@ -12,32 +12,101 @@
 </head>
 <body>
 
-    <h2>Add Two Numbers with Python</h2>
-    
-    <!-- The form sends data back to our Flask script via POST -->
-    <form method="POST">
+    <h2>Stud Calculator</h2> 
+    <form method = post>
         <div class="form-group">
-            <label for="num1">First Number:</label><br>
-            <input type="number" step="any" name="num1" id="num1" required>
+            <label for="k2data">K2 Data:</label><br>
+            <select name="k2data" id="k2data">
+                <option value="1.74">Pin Pin</option>
+                <option value="0.41">Fixed Fixed</option>
+            </select><br>
+            
+            <label for = length>Length:</label><br>
+            <input type="number" step="any" name="length" id="length" value="20"><br>
+            <label for = material>Material:</label><br>
+            <select name="material" id="material">  
+                <option value="C-30">C-30</option>
+                <option value="C-40">C-40</option>
+                <option value="T-35">C-35</option>
+                <option value="MCG-15">MCG-15</option>
+            </select><br>
+            <label for="depth">Depth:</label><br>
+            <input type="number" step="any" name="depth" id="depth" required><br>
+            <label for="width">width:</label><br>
+            <input type="number" step="any" name="width" id="width" required><br>
+            <label for="k_mode">K_Mode:</label><br>
+            <input type="number" step="any" name="k_mode" id="k_mode" required><br>
+           <h3>Select available load type</h3>
+           <label for="load_type">Load Type:</label><br>
+            <select name="load_type" id="load_type">
+                <option value="office">Office</option>
+                <option value="garden">Garden</option>
+                <option value="residential">Residential</option>
+                <option value="building">Building</option>
+            </select><br>  
+          <h3>Applied Load Combinations</h3>  
+                <!-- All inputs share the name 'options' but have different values -->
+                <div>
+                    <input type="checkbox" name="options" value="dead_load" id="opt1">
+                    <label for="opt1">Dead Load </label>
+                </div>
+                <div>
+                    <input type="checkbox" name="options" value="live_load" id="opt2">
+                    <label for="opt2">Live Load </label>
+                </div>
+                <div>
+                    <input type="checkbox" name="options" value="wind_load" id="opt3">
+                    <label for="opt3">Wind Load </label>
+                </div>
+                <div>
+                    <input type="checkbox" name="options" value="seismic_load" id="opt4">
+                    <label for="opt4">Seismic Load </label>
+                </div>
+                <div>
+                    <input type="checkbox" name="options" value="snow_load" id="opt5">
+                    <label for="opt5">Snow Load </label>
+                </div>
+                <br>
+
+                <button type="submit">Calculate phi</button>
         </div>
         
-        <div class="form-group">
-            <label for="num2">Second Number:</label><br>
-            <input type="number" step="any" name="num2" id="num2" required>
-        </div>
-        
-        <button type="submit">Calculate Sum</button>
     </form>
 
     <!-- Display the result if it exists -->
     {% if result is not none %}
         <h3>Result: {{ result }}</h3>
-        <h3>History:</h3>
-        <ul>
-            {% for calc in history %}
-                <li>{{ calc.num1 }} * {{ calc.num2 }} = {{ calc.result }}</li>
-            {% endfor %}
-        </ul>
+    {% endif %}
+
+    <!-- Display the selected_options for load if it exists -->
+    {% if result is not none %}
+        <h3>Selected_options: {{ selected_options }}</h3>
+    {% endif %}
+    <!-- Display the k_mode if it exists -->
+    {% if k_mode is not none %}
+        <h3>K_Mode: {{ k_mode }}</h3>
+    {% endif %}
+    <!-- display phi result -->
+    {% if phi is not none %}
+        <h3>Phi: {{ phi }}</h3>
+    {% endif %}
+
+    
+
+    <!-- display design strength FD result -->
+    {% if phi is not none %}
+        <h3>FD: {{ fd }}</h3>
+    {% endif %}
+
+    <!-- display total load result -->
+    {% if total_load is not none %}
+        <h3>Total Load: {{ total_load }}</h3>
+    {% endif %}
+
+    <!-- display utilization ratio -->
+    {% if utilization_ratio is not none %}
+        <h3>Utilization Ratio: {{ utilization_ratio[0] }}</h3>
+        <h3>Utilization Ratio Value: {{ utilization_ratio[1] }}</h3>
     {% endif %}
 
 </body>

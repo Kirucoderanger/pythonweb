@@ -1,0 +1,176 @@
+
+const length = document.getElementById("length");
+const depth = document.getElementById("depth");
+const width = document.getElementById("width");
+
+(function () {
+    "use strict";
+
+    const container = document.getElementById("stud-viewer");
+
+    if (!container) {
+        console.error('3D preview: element "#stud-viewer" was not found.');
+        return;
+    }
+
+    function showError(message) {
+        container.innerHTML = "";
+        const error = document.createElement("div");
+        error.style.cssText =
+            "padding:16px;color:#b91c1c;font:14px Arial,sans-serif;";
+        error.textContent = message;
+        container.appendChild(error);
+    }
+
+    if (!window.THREE) {
+        showError("Three.js did not load. Check your internet connection.");
+        return;
+    }
+
+    try {
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf1f5f9);
+
+        const camera = new THREE.PerspectiveCamera(
+            45,
+            Math.max(container.clientWidth, 1) /
+                Math.max(container.clientHeight, 1),
+            0.1,
+            1000
+        );
+
+        camera.position.set(4, 3, 5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(
+            Math.max(container.clientWidth, 1),
+            Math.max(container.clientHeight, 1)
+        );
+        container.innerHTML = "";
+        container.appendChild(renderer.domElement);
+
+        renderer.domElement.style.display = "block";
+        renderer.domElement.style.width = "100%";
+        renderer.domElement.style.height = "100%";
+        renderer.domElement.style.touchAction = "none";
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+
+        const light = new THREE.DirectionalLight(0xffffff, 1.2);
+        light.position.set(5, 8, 6);
+        scene.add(light);
+
+        // Illustrative stud dimensions; these are not design calculations.
+        const geometry = new THREE.BoxGeometry(depth, length, width);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0xc28b52,
+            roughness: 0.75,
+            metalness: 0
+        });
+
+        const stud = new THREE.Mesh(geometry, material);
+        scene.add(stud);
+
+        // Add simple edge lines to make the timber shape easier to see.
+        const edges = new THREE.EdgesGeometry(geometry);
+        const outline = new THREE.LineSegments(
+            edges,
+            new THREE.LineBasicMaterial({ color: 0x704214 })
+        );
+        stud.add(outline);
+
+        const grid = new THREE.GridHelper(8, 16, 0x94a3b8, 0xd1d5db);
+        grid.position.y = -2.05;
+        scene.add(grid);
+
+        const target = new THREE.Vector3(0, 0, 0);
+        let radius = camera.position.distanceTo(target);
+        let theta = Math.atan2(camera.position.x, camera.position.z);
+        let phi = Math.acos(camera.position.y / radius);
+
+        const minRadius = 2.5;
+        const maxRadius = 12;
+        let dragging = false;
+        let previousX = 0;
+        let previousY = 0;
+
+        function updateCamera() {
+            phi = Math.max(0.12, Math.min(Math.PI - 0.12, phi));
+            radius = Math.max(minRadius, Math.min(maxRadius, radius));
+
+            camera.position.set(
+                target.x + radius * Math.sin(phi) * Math.sin(theta),
+                target.y + radius * Math.cos(phi),
+                target.z + radius * Math.sin(phi) * Math.cos(theta)
+            );
+
+            camera.lookAt(target);
+        }
+
+        renderer.domElement.addEventListener("pointerdown", function (event) {
+            dragging = true;
+            previousX = event.clientX;
+            previousY = event.clientY;
+            renderer.domElement.setPointerCapture(event.pointerId);
+        });
+
+        renderer.domElement.addEventListener("pointermove", function (event) {
+            if (!dragging) return;
+
+            const dx = event.clientX - previousX;
+            const dy = event.clientY - previousY;
+            previousX = event.clientX;
+            previousY = event.clientY;
+
+            theta -= dx * 0.01;
+            phi -= dy * 0.01;
+            updateCamera();
+        });
+
+        function stopDragging() {
+            dragging = false;
+        }
+
+        renderer.domElement.addEventListener("pointerup", stopDragging);
+        renderer.domElement.addEventListener("pointercancel", stopDragging);
+        renderer.domElement.addEventListener("lostpointercapture", stopDragging);
+
+        renderer.domElement.addEventListener(
+            "wheel",
+            function (event) {
+                event.preventDefault();
+                radius *= Math.exp(event.deltaY * 0.001);
+                updateCamera();
+            },
+            { passive: false }
+        );
+
+        updateCamera();
+
+        function resize() {
+            const width = Math.max(container.clientWidth, 1);
+            const height = Math.max(container.clientHeight, 1);
+
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        if ("ResizeObserver" in window) {
+            new ResizeObserver(resize).observe(container);
+        } else {
+            window.addEventListener("resize", resize);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    } catch (error) {
+        console.error("Stud preview initialization failed:", error);
+        showError("The 3D preview could not initialize. Check the browser console.");
+    }
+})();
