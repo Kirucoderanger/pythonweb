@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Projects - Stud Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            line-height: 1.5;
+        }
+
+        input, button {
+            padding: 8px;
+            margin: 4px 0;
+        }
+
+        .project {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .messages {
+            padding-left: 20px;
+        }
+
+        .error {
+            color: #a21d1d;
+        }
+
+        .success {
+            color: #176b35;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Saved Projects</h1>
+
+    <p>
+        <a href="{{ url_for('home') }}">Calculator</a> |
+        <a href="{{ url_for('calculation_history') }}">Calculation history</a>
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="messages">
+                {% for category, message in messages %}
+                    <li class="{{ category }}" role="alert">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <section>
+        <h2>Create a project</h2>
+
+        <form method="POST" action="{{ url_for('projects') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label for="name">Project name</label>
+            <input
+                type="text"
+                id="name"
+                name="name"
+                maxlength="150"
+                required
+                placeholder="e.g. Living room roof"
+            >
+
+            <button type="submit">Create project</button>
+        </form>
+    </section>
+
+    <section>
+        <h2>Your projects</h2>
+
+        {% if projects %}
+            {% for project in projects %}
+                <article class="project">
+                    <h3>{{ project.name }}</h3>
+
+                    <p>
+                        Created:
+                        {{ project.created_at.strftime("%Y-%m-%d %H:%M") }}
+                    </p>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('rename_project', project_id=project.id) }}"
+                    >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <label for="name-{{ project.id }}">Rename project</label>
+                        <input
+                            type="text"
+                            id="name-{{ project.id }}"
+                            name="name"
+                            maxlength="150"
+                            required
+                            value="{{ project.name }}"
+                        >
+
+                        <button type="submit">Rename</button>
+                    </form>
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('delete_project', project_id=project.id) }}"
+                        onsubmit="return confirm('Delete this project? This cannot be undone.');"
+                    >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit">Delete project</button>
+                    </form>
+                </article>
+            {% endfor %}
+        {% else %}
+            <p>You have no saved projects yet. Create your first project above.</p>
+        {% endif %}
+    </section>
+</body>
+</html>

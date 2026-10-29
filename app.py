@@ -14,7 +14,7 @@ from flask_login import login_required
 from sqlalchemy import select
 
 from extensions import db
-from models import CalculationHistory
+from models import User, SavedProject, CalculationHistory
 
 load_dotenv()
 
@@ -382,7 +382,101 @@ def calculation_history():
         "history.html",
         history_records=history_records,
     )
-    
+ 
+@app.route("/projects", methods=["GET", "POST"])
+@login_required
+def projects():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+
+        if not name or len(name) > 150:
+            flash("Project name must be between 1 and 150 characters.", "error")
+            return redirect(url_for("projects"))
+
+        project = SavedProject(
+            user_id=current_user.id,
+            name=name,
+            input_data={},
+        )
+
+        try:
+            db.session.add(project)
+            db.session.commit()
+            flash("Project created successfully.", "success")
+        except Exception:
+            db.session.rollback()
+            app.logger.exception("Could not create project.")
+            flash("Could not create the project. Please try again.", "error")
+
+        return redirect(url_for("projects"))
+
+    user_projects = db.session.scalars(
+        select(SavedProject)
+        .where(SavedProject.user_id == current_user.id)
+        .order_by(SavedProject.updated_at.desc())
+    ).all()
+
+    return render_template("projects.html", projects=user_projects)
+
+
+@app.route("/projects/<int:project_id>/rename", methods=["POST"])
+@login_required
+def rename_project(project_id):
+    project = db.session.scalar(
+        select(SavedProject).where(
+            SavedProject.id == project_id,
+            SavedProject.user_id == current_user.id,
+        )
+    )
+
+    if project is None:
+        flash("Project not found.", "error")
+        return redirect(url_for("projects"))
+
+    name = request.form.get("name", "").strip()
+
+    if not name or len(name) > 150:
+        flash("Project name must be between 1 and 150 characters.", "error")
+        return redirect(url_for("projects"))
+
+    project.name = name
+
+    try:
+        db.session.commit()
+        flash("Project renamed successfully.", "success")
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Could not rename project.")
+        flash("Could not rename the project.", "error")
+
+    return redirect(url_for("projects"))
+
+
+@app.route("/projects/<int:project_id>/delete", methods=["POST"])
+@login_required
+def delete_project(project_id):
+    project = db.session.scalar(
+        select(SavedProject).where(
+            SavedProject.id == project_id,
+            SavedProject.user_id == current_user.id,
+        )
+    )
+
+    if project is None:
+        flash("Project not found.", "error")
+        return redirect(url_for("projects"))
+
+    try:
+        db.session.delete(project)
+        db.session.commit()
+        flash("Project deleted successfully.", "success")
+    except Exception:
+        db.session.rollback()
+        app.logger.exception("Could not delete project.")
+        flash("Could not delete the project.", "error")
+
+    return redirect(url_for("projects"))
+   
 
 if __name__ == "__main__":
     app.run(debug=True)
