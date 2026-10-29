@@ -1,113 +1,155 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Add Two Numbers</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 50px; }
-        .form-group { margin-bottom: 15px; }
-        input[type="number"] { padding: 8px; width: 200px; }
-        button { padding: 8px 15px; background-color: #007BFF; color: white; border: none; cursor: pointer; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StudCalc | Timber Engineering</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!--<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>-->
+  <script defer src="{{ url_for('static', filename='js/controls/OrbitControls.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/stud-viewer.js') }}"></script>
 </head>
 <body>
-
-    <h2>Stud Calculator</h2> 
-    <form method = post>
-        <div class="form-group">
-            <label for="k2data">K2 Data:</label><br>
-            <select name="k2data" id="k2data">
-                <option value="1.74">Pin Pin</option>
-                <option value="0.41">Fixed Fixed</option>
-            </select><br>
-            
-            <label for = length>Length:</label><br>
-            <input type="number" step="any" name="length" id="length" value="20"><br>
-            <label for = material>Material:</label><br>
-            <select name="material" id="material">  
-                <option value="C-30">C-30</option>
-                <option value="C-40">C-40</option>
-                <option value="T-35">C-35</option>
-                <option value="MCG-15">MCG-15</option>
-            </select><br>
-            <label for="depth">Depth:</label><br>
-            <input type="number" step="any" name="depth" id="depth" required><br>
-            <label for="width">width:</label><br>
-            <input type="number" step="any" name="width" id="width" required><br>
-            <label for="k_mode">K_Mode:</label><br>
-            <input type="number" step="any" name="k_mode" id="k_mode" required><br>
-           <h3>Select available load type</h3>
-           <label for="load_type">Load Type:</label><br>
-            <select name="load_type" id="load_type">
-                <option value="office">Office</option>
-                <option value="garden">Garden</option>
-                <option value="residential">Residential</option>
-                <option value="building">Building</option>
-            </select><br>  
-          <h3>Applied Load Combinations</h3>  
-                <!-- All inputs share the name 'options' but have different values -->
-                <div>
-                    <input type="checkbox" name="options" value="dead_load" id="opt1">
-                    <label for="opt1">Dead Load </label>
-                </div>
-                <div>
-                    <input type="checkbox" name="options" value="live_load" id="opt2">
-                    <label for="opt2">Live Load </label>
-                </div>
-                <div>
-                    <input type="checkbox" name="options" value="wind_load" id="opt3">
-                    <label for="opt3">Wind Load </label>
-                </div>
-                <div>
-                    <input type="checkbox" name="options" value="seismic_load" id="opt4">
-                    <label for="opt4">Seismic Load </label>
-                </div>
-                <div>
-                    <input type="checkbox" name="options" value="snow_load" id="opt5">
-                    <label for="opt5">Snow Load </label>
-                </div>
-                <br>
-
-                <button type="submit">Calculate phi</button>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <span class="brand-mark">S<span>C</span></span>
+        <span class="brand-copy"><strong>StudCalc</strong><small>TIMBER ENGINEERING</small></span>
+      </a>
+      <div class="sidebar-label">WORKSPACE</div>
+      <a class="nav-item active" href="#calculator"><span class="nav-icon">▦</span> Calculator</a>
+      <a class="nav-item" href="#model"><span class="nav-icon">◇</span> 3D Preview <span class="soon-tag">LIVE</span></a>
+      <a class="nav-item" href="#results"><span class="nav-icon">▤</span> Results</a>
+      <div class="sidebar-bottom">
+        <div class="help-card">
+          <span class="help-icon">i</span>
+          <strong>Prototype workspace</strong>
+          <p>Use results for development checks only until the design equations and units are verified.</p>
         </div>
-        
-    </form>
+        <div class="sidebar-footer"><span class="status-dot"></span> Local prototype <span class="version">v0.1</span></div>
+      </div>
+    </aside>
 
-    <!-- Display the result if it exists -->
-    {% if result is not none %}
-        <h3>Result: {{ result }}</h3>
-    {% endif %}
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">TIMBER DESIGN WORKSPACE</div>
+          <h1>Stud calculator</h1>
+          <p class="page-subtitle">Configure a timber member, inspect its 3D geometry, and review prototype outputs.</p>
+        </div>
+        <div class="topbar-right"><span class="secure-icon">✓</span><span>Engineering workspace</span></div>
+      </header>
 
-    <!-- Display the selected_options for load if it exists -->
-    {% if result is not none %}
-        <h3>Selected_options: {{ selected_options }}</h3>
-    {% endif %}
-    <!-- Display the k_mode if it exists -->
-    {% if k_mode is not none %}
-        <h3>K_Mode: {{ k_mode }}</h3>
-    {% endif %}
-    <!-- display phi result -->
-    {% if phi is not none %}
-        <h3>Phi: {{ phi }}</h3>
-    {% endif %}
+      <div class="notice-banner">
+        <span class="notice-symbol">!</span>
+        <div><strong>Prototype results</strong><p>Some outputs are placeholders or not yet validated. This interface is not a substitute for a verified structural design check.</p></div>
+      </div>
 
-    
+      <div class="workspace-grid">
+        <section class="panel calculator-panel" id="calculator">
+          <div class="panel-heading">
+            <div><span class="section-kicker">01 / INPUTS</span><h2>Member configuration</h2></div>
+            <span class="step-chip">DESIGN INPUT</span>
+          </div>
+          <form method="post" action="/" id="stud-form">
+            <div class="form-section">
+              <div class="form-section-title"><span class="section-number">A</span><div><strong>Geometry</strong><small>Member dimensions and restraint conditions</small></div></div>
+              <div class="field-grid">
+                <label class="field full-width"><span>End restraint (K₂)</span>
+                  <select name="k2data" id="k2data">
+                    <option value="1.74" {% if request.form.get('k2data', '1.74') == '1.74' %}selected{% endif %}>Pin–Pin <span>(1.74)</span></option>
+                    <option value="0.41" {% if request.form.get('k2data') == '0.41' %}selected{% endif %}>Fixed–Fixed (0.41)</option>
+                  </select>
+                </label>
+                <label class="field"><span>Length <em>your existing unit</em></span><div class="input-wrap"><input type="number" step="any" min="0.001" name="length" id="length" value="{{ request.form.get('length', '20') }}" required><span class="input-suffix">L</span></div></label>
+                <label class="field"><span>Depth <em>your existing unit</em></span><div class="input-wrap"><input type="number" step="any" min="0.001" name="depth" id="depth" value="{{ request.form.get('depth', '') }}" required><span class="input-suffix">D</span></div></label>
+                <label class="field"><span>Width <em>your existing unit</em></span><div class="input-wrap"><input type="number" step="any" min="0.001" name="width" id="width" value="{{ request.form.get('width', '') }}" required><span class="input-suffix">W</span></div></label>
+                <label class="field"><span>K mode</span><div class="input-wrap"><input type="number" step="any" name="k_mode" id="k_mode" value="{{ request.form.get('k_mode', '') }}" required><span class="input-suffix">K</span></div></label>
+              </div>
+            </div>
+            <div class="form-section">
+              <div class="form-section-title"><span class="section-number">B</span><div><strong>Material</strong><small>Select the prototype material grade</small></div></div>
+              <label class="field"><span>Material grade</span>
+                <select name="material" id="material">
+                  {% for value, label in [('C-30','C-30'),('C-40','C-40'),('T-35','T-35'),('MCG-15','MCG-15')] %}
+                    <option value="{{ value }}" {% if request.form.get('material', 'C-30') == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+            </div>
+            <div class="form-section">
+              <div class="form-section-title"><span class="section-number">C</span><div><strong>Loading scenario</strong><small>Prototype load category and combinations</small></div></div>
+              <label class="field"><span>Occupancy / load category</span>
+                <select name="load_type" id="load_type">
+                  {% for value, label in [('office','Office'),('garden','Garden'),('residential','Residential'),('building','Building')] %}
+                    <option value="{{ value }}" {% if request.form.get('load_type', 'office') == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <div class="checkbox-grid">
+                {% for value, label in [('dead_load','Dead load'),('live_load','Live load'),('wind_load','Wind load'),('seismic_load','Seismic load'),('snow_load','Snow load')] %}
+                <label class="check-option"><input type="checkbox" name="options" value="{{ value }}" {% if value in request.form.getlist('options') %}checked{% endif %}><span class="fake-check"></span><span>{{ label }}</span></label>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="primary-button" type="submit"><span>Run prototype calculation</span><span class="button-arrow">→</span></button>
+              <p class="form-hint">Your existing Flask route handles the calculation.</p>
+            </div>
+          </form>
+        </section>
 
-    <!-- display design strength FD result -->
-    {% if phi is not none %}
-        <h3>FD: {{ fd }}</h3>
-    {% endif %}
+        <div class="right-column">
+          <section class="panel viewer-panel" id="model">
+            <div class="panel-heading">
+              <div><span class="section-kicker">02 / VISUALIZATION</span><h2>3D stud preview</h2></div>
+              <span class="live-chip"><span class="status-dot"></span> INTERACTIVE</span>
+            </div>
+            <div class="viewer-toolbar"><span><span class="axis-dot"></span> Timber member</span><span class="viewer-tip">Drag to rotate · Scroll to zoom</span></div>
+            <div id="stud-viewer" aria-label="Interactive 3D preview of a timber stud">
+              <div class="viewer-loading" id="viewer-loading">Loading 3D preview…</div>
+              <div class="viewer-fallback" id="viewer-fallback" hidden>3D preview could not load. Check your internet connection and reload the page.</div>
+            </div>
+            <div class="dimension-strip">
+              <div><span>Length</span><strong id="dimension-length">20</strong></div>
+              <div><span>Depth</span><strong id="dimension-depth">—</strong></div>
+              <div><span>Width</span><strong id="dimension-width">—</strong></div>
+            </div>
+            <div class="viewer-legend"><span><i class="legend-wood"></i> Member body</span><span><i class="legend-support"></i> End restraints (schematic)</span></div>
+          </section>
 
-    <!-- display total load result -->
-    {% if total_load is not none %}
-        <h3>Total Load: {{ total_load }}</h3>
-    {% endif %}
-
-    <!-- display utilization ratio -->
-    {% if utilization_ratio is not none %}
-        <h3>Utilization Ratio: {{ utilization_ratio[0] }}</h3>
-        <h3>Utilization Ratio Value: {{ utilization_ratio[1] }}</h3>
-    {% endif %}
-
+          <section class="panel results-panel" id="results">
+            <div class="panel-heading">
+              <div><span class="section-kicker">03 / OUTPUTS</span><h2>Calculation summary</h2></div>
+              {% if request.method == 'POST' and final_report %}<span class="result-chip">UPDATED</span>{% else %}<span class="step-chip">AWAITING RUN</span>{% endif %}
+            </div>
+            {% if request.method == 'POST' and final_report %}
+            <div class="result-grid">
+              <div class="result-card"><span>Phi (φ)</span><strong>{{ phi if phi is not none else '—' }}</strong><small>Prototype output</small></div>
+              <div class="result-card"><span>FD</span><strong>{{ fd if fd is not none else '—' }}</strong><small>Confirm formula and units</small></div>
+              <div class="result-card"><span>Total load</span><strong>{{ total_load if total_load is not none else '—' }}</strong><small>Prototype output</small></div>
+              <div class="result-card wide-result"><span>Utilization / status</span><strong>
+                {% if utilization_ratio is not none %}
+                  {% if utilization_ratio is sequence and utilization_ratio is not string %}
+                    {{ utilization_ratio[0] }}{% if utilization_ratio|length > 1 %} <small>({{ utilization_ratio[1] }})</small>{% endif %}
+                  {% else %}{{ utilization_ratio }}{% endif %}
+                {% else %}—{% endif %}
+              </strong><small>Not a verified pass/fail design conclusion</small></div>
+            </div>
+            {% if request.form.getlist('options') %}<div class="selected-loads"><span>Selected combinations</span>{% for item in request.form.getlist('options') %}<span class="load-tag">{{ item|replace('_',' ')|title }}</span>{% endfor %}</div>{% endif %}
+            {% else %}
+            <div class="empty-results"><div class="empty-icon">↗</div><strong>Your outputs will appear here</strong><p>Enter the member inputs and run the existing prototype calculation to populate this summary.</p></div>
+            {% endif %}
+            <div class="result-footnote"><span>ⓘ</span><p>Outputs are displayed from the current prototype backend. Engineering equations, material properties, load combinations, and units must be verified before real-world use.</p></div>
+          </section>
+        </div>
+      </div>
+      <footer class="page-footer"><span>StudCalc · Timber engineering prototype</span><span>Built for iterative development <span class="footer-dot">•</span> Calculation validation pending</span></footer>
+    </main>
+  </div>
 </body>
 </html>
