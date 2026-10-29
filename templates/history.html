@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Calculation History - Stud Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            line-height: 1.5;
+        }
+
+        .record {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .messages {
+            color: #9b1c1c;
+        }
+
+        a {
+            margin-right: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Calculation History</h1>
+
+    <p>
+        <a href="{{ url_for('home') }}">Back to calculator</a>
+        <a href="{{ url_for('auth.login') }}">Login</a>
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="messages">
+                {% for category, message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    {% if history_records %}
+        {% for record in history_records %}
+            <article class="record">
+                <h2>Calculation #{{ record.id }}</h2>
+
+                <p>
+                    <strong>Date:</strong>
+                    {{ record.created_at.strftime("%Y-%m-%d %H:%M UTC") }}
+                </p>
+
+                <h3>Inputs</h3>
+                <ul>
+                    <li>Length: {{ record.inputs.get("length", "N/A") }}</li>
+                    <li>Depth: {{ record.inputs.get("depth", "N/A") }}</li>
+                    <li>Width: {{ record.inputs.get("width", "N/A") }}</li>
+                    <li>Material: {{ record.inputs.get("material", "N/A") }}</li>
+                    <li>Load type: {{ record.inputs.get("load_type", "N/A") }}</li>
+                    <li>
+                        Selected loads:
+                        {{ record.inputs.get("selected_loads", []) | join(", ") }}
+                    </li>
+                </ul>
+
+                <h3>Results</h3>
+                <ul>
+                    <li>Phi: {{ record.results.get("phi", "N/A") }}</li>
+                    <li>Design-strength value: {{ record.results.get("fd", "N/A") }}</li>
+                    <li>Total selected load factors: {{ record.results.get("total_load", "N/A") }}</li>
+                    <li>
+                        Utilization ratio:
+                        {{ record.results.get("utilization_ratio", "N/A") }}
+                    </li>
+                </ul>
+
+                <p>{{ record.results.get("status", "") }}</p>
+            </article>
+        {% endfor %}
+    {% else %}
+        <p>You have no saved calculations yet. Submit a calculation while logged in to start your history.</p>
+    {% endif %}
+</body>
+</html>

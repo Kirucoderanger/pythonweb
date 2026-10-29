@@ -7,6 +7,14 @@ from flask_login import current_user
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 from extensions import db, migrate, login_manager
+from flask_wtf.csrf import CSRFProtect
+
+from flask import flash, redirect, url_for
+from flask_login import login_required
+from sqlalchemy import select
+
+from extensions import db
+from models import CalculationHistory
 
 load_dotenv()
 
@@ -16,6 +24,9 @@ if not app.config["SECRET_KEY"]:
     raise RuntimeError(
         "SECRET_KEY is missing. Set it in your local .env file."
     )
+    
+csrf = CSRFProtect(app)
+
 app.config["DATABASE_URL"] = os.getenv("DATABASE_URL",
     "sqlite:///stud_calculator.db",)
 if not app.config["DATABASE_URL"]:
@@ -58,7 +69,7 @@ k2data = {
         "fixedfixed": 0.41
     }
 
-    
+"""    
 @app.route("/", methods=["GET", "POST"])
 def home():
     
@@ -180,7 +191,198 @@ def home():
     return render_template("index.html", phi=phi, k_mode=k_mode, fd=fd, total_load=total_load, utilization_ratio=utilization_ratio, final_report=final_report)
     
     
- 
+"""
+
+@app.route("/", methods=["GET", "POST"])
+def home():
+    # Keep the existing calculator page and form.
+    if request.method == "GET":
+        return render_template(
+            "index.html",
+            phi=None,
+            k_mode=0.5,
+            fd=None,
+            total_load=None,
+            utilization_ratio=None,
+            final_report=False,
+        )
+
+    try:
+        # Read and validate numeric inputs.
+        k2 = float(request.form.get("k2data", "1.74"))
+        length = float(request.form.get("length", "20"))
+        depth = float(request.form.get("depth", "0.5"))
+        width = float(request.form.get("width", "0.5"))
+        k_mode = float(request.form.get("k_mode", "0.5"))
+
+        numeric_values = [k2, length, depth, width, k_mode]
+        if not all(math.isfinite(value) for value in numeric_values):
+            raise ValueError("Please enter finite numeric values.")
+
+        if length <= 0 or depth <= 0 or width <= 0:
+            raise ValueError("Length, depth, and width must be greater than zero.")
+
+        if k2 < 0 or k_mode <= 0:
+            raise ValueError("The selected factors must be greater than zero.")
+
+        # Use the first selected occupancy/load type.
+        selected_types = request.form.getlist("load_type")
+        load_type = selected_types[0] if selected_types else "office"
+
+        load_factors = {
+            "office": {
+                "dead_load": 1.2, "live_load": 1.6,
+                "wind_load": 1.4, "seismic_load": 1.5,
+                "snow_load": 1.3,
+            },
+            "garden": {
+                "dead_load": 1.3, "live_load": 1.5,
+                "wind_load": 1.4, "seismic_load": 1.5,
+                "snow_load": 1.3,
+            },
+            "residential": {
+                "dead_load": 1.4, "live_load": 1.7,
+                "wind_load": 1.4, "seismic_load": 1.5,
+                "snow_load": 1.3,
+            },
+            "building": {
+                "dead_load": 1.5, "live_load": 1.8,
+                "wind_load": 1.5, "seismic_load": 1.6,
+                "snow_load": 1.4,
+            },
+        }
+
+        if load_type not in load_factors:
+            raise ValueError("Please select a valid load type.")
+
+        factors = load_factors[load_type]
+
+        # Validate the material selection.
+        material = request.form.get("material", "C-30")
+        materials = {
+            "C-30": 30,
+            "C-40": 40,
+            "T-35": 35,
+            "MCG-15": 15,
+        }
+
+        if material not in materials:
+            raise ValueError("Please select a valid material.")
+
+        strength = materials[material]
+        E0 = strength - 9
+        G0 = strength * 0.5
+        gama_factor = 1.5
+
+        # Calculate the selected loads.
+        selected_loads = request.form.getlist("options")
+        allowed_loads = {
+            "dead_load", "live_load", "wind_load",
+            "seismic_load", "snow_load",
+        }
+
+        if not selected_loads or not set(selected_loads).issubset(allowed_loads):
+            raise ValueError("Please select at least one valid load.")
+
+        total_load = sum(factors[load] for load in selected_loads)
+
+        # Existing prototype calculation formula retained.
+        IZ = (width * depth**3) / 12
+        AZ = width * 0.5
+
+        phi = k2 * AZ * math.sqrt(IZ / length) * math.sqrt(
+            E0 * IZ / G0
+        )
+        fd = k_mode * phi * (strength / gama_factor)
+
+        if not math.isfinite(fd) or fd <= 0:
+            raise ValueError(
+                "The calculated design-strength denominator is invalid. "
+                "Check your inputs."
+            )
+
+        ratio = total_load / fd
+
+        # These labels are descriptive only, not engineering certification.
+        if ratio <= 1:
+            status = "Prototype utilization ratio is at or below 1."
+        else:
+            status = "Prototype utilization ratio exceeds 1."
+
+        utilization_ratio = (status, ratio)
+        final_report = True
+
+    except (ValueError, TypeError, OverflowError) as error:
+        flash(str(error), "error")
+        return render_template(
+            "index.html",
+            phi=None,
+            k_mode=request.form.get("k_mode", "0.5"),
+            fd=None,
+            total_load=None,
+            utilization_ratio=None,
+            final_report=False,
+        )
+
+    # Save a record only for authenticated users.
+    if current_user.is_authenticated:
+        history = CalculationHistory(
+            user_id=current_user.id,
+            inputs={
+                "k2": k2,
+                "length": length,
+                "depth": depth,
+                "width": width,
+                "k_mode": k_mode,
+                "material": material,
+                "load_type": load_type,
+                "selected_loads": selected_loads,
+            },
+            results={
+                "phi": phi,
+                "fd": fd,
+                "total_load": total_load,
+                "status": status,
+                "utilization_ratio": ratio,
+            },
+        )
+
+        try:
+            db.session.add(history)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            app.logger.exception("Could not save calculation history.")
+            flash(
+                "Your calculation was completed, but its history could not be saved.",
+                "warning",
+            )
+
+    return render_template(
+        "index.html",
+        phi=phi,
+        k_mode=k_mode,
+        fd=fd,
+        total_load=total_load,
+        utilization_ratio=utilization_ratio,
+        final_report=final_report,
+    )
+    
+@app.route("/history")
+@login_required
+def calculation_history():
+    history_records = db.session.scalars(
+        select(CalculationHistory)
+        .where(CalculationHistory.user_id == current_user.id)
+        .order_by(CalculationHistory.created_at.desc())
+        .limit(100)
+    ).all()
+
+    return render_template(
+        "history.html",
+        history_records=history_records,
+    )
+    
 
 if __name__ == "__main__":
     app.run(debug=True)
