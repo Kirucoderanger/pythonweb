@@ -1,89 +1,132 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Calculation History - Stud Calculator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-            line-height: 1.5;
-        }
-
-        .record {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .messages {
-            color: #9b1c1c;
-        }
-
-        a {
-            margin-right: 12px;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calculation History | StudCalc</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>My Calculation History</h1>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="{{ url_for('home') }}">
+      <span class="brand-mark">S<span>C</span></span>
+      <span class="brand-copy"><strong>StudCalc</strong><small>TIMBER ENGINEERING</small></span>
+    </a>
+    <div class="sidebar-label">WORKSPACE</div>
+    <a class="nav-item" href="{{ url_for('home') }}"><span class="nav-icon">▦</span> Calculator</a>
+    <a class="nav-item" href="{{ url_for('home') }}#model"><span class="nav-icon">◇</span> 3D Preview</a>
+    <a class="nav-item active" href="{{ url_for('calculation_history') }}"><span class="nav-icon">☰</span> Calculation History</a>
+    <a class="nav-item" href="{{ url_for('projects') }}"><span class="nav-icon">✎</span> Saved Projects</a>
+    <div class="sidebar-bottom">
+      <div class="help-card">
+        <span class="help-icon">i</span>
+        <strong>Calculation records</strong>
+        <p>History is a record of prototype outputs, not a certified structural assessment.</p>
+      </div>
+      <div class="sidebar-footer"><span class="status-dot"></span> Local prototype <span class="version">v0.1</span></div>
+    </div>
+  </aside>
 
-    <p>
-        <a href="{{ url_for('home') }}">Back to calculator</a>
-        <a href="{{ url_for('auth.login') }}">Login</a>
-    </p>
+  <main class="main-content">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">WORKSPACE / RECORDS</div>
+        <h1>Calculation history</h1>
+        <p class="page-subtitle">Review your previous calculation inputs and prototype outputs.</p>
+      </div>
+      <div class="topbar-right">
+        <span class="secure-icon">✓</span>
+        <span>{{ current_user.email }}</span>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="secondary-button" type="submit">Log out</button>
+        </form>
+      </div>
+    </header>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul class="messages">
-                {% for category, message in messages %}
-                    <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
+      {% if messages %}
+        <div class="flash-list" aria-live="polite">
+          {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}" role="alert">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
     {% endwith %}
 
-    {% if history_records %}
-        {% for record in history_records %}
-            <article class="record">
-                <h2>Calculation #{{ record.id }}</h2>
+    <section class="panel page-panel">
+      <div class="panel-heading">
+        <div><span class="section-kicker">01 / SAVED RECORDS</span><h2>Your calculations</h2></div>
+        <a class="secondary-button" href="{{ url_for('home') }}">New calculation</a>
+      </div>
 
-                <p>
-                    <strong>Date:</strong>
-                    {{ record.created_at.strftime("%Y-%m-%d %H:%M UTC") }}
-                </p>
+      {% if history_records %}
+        <div class="history-list">
+          {% for record in history_records %}
+            <article class="history-card">
+              <div class="project-card-heading">
+                <div>
+                  <h3>Calculation #{{ record.id }}</h3>
+                  <p class="muted-text">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</p>
+                  {% if record.project %}
+                    <p class="muted-text">Project: {{ record.project.name }}</p>
+                  {% else %}
+                    <p class="muted-text">Not linked to a project</p>
+                  {% endif %}
+                </div>
+                <span class="step-chip">SAVED</span>
+              </div>
 
-                <h3>Inputs</h3>
-                <ul>
-                    <li>Length: {{ record.inputs.get("length", "N/A") }}</li>
-                    <li>Depth: {{ record.inputs.get("depth", "N/A") }}</li>
-                    <li>Width: {{ record.inputs.get("width", "N/A") }}</li>
-                    <li>Material: {{ record.inputs.get("material", "N/A") }}</li>
-                    <li>Load type: {{ record.inputs.get("load_type", "N/A") }}</li>
-                    <li>
-                        Selected loads:
-                        {{ record.inputs.get("selected_loads", []) | join(", ") }}
-                    </li>
-                </ul>
+              <div class="history-details">
+                <div>
+                  <h4>Inputs</h4>
+                  <dl class="detail-list">
+                    <dt>Length</dt><dd>{{ record.inputs.get("length", "N/A") }}</dd>
+                    <dt>Depth</dt><dd>{{ record.inputs.get("depth", "N/A") }}</dd>
+                    <dt>Width</dt><dd>{{ record.inputs.get("width", "N/A") }}</dd>
+                    <dt>K₂</dt><dd>{{ record.inputs.get("k2data", "N/A") }}</dd>
+                    <dt>K mode</dt><dd>{{ record.inputs.get("k_mode", "N/A") }}</dd>
+                    <dt>Material</dt><dd>{{ record.inputs.get("material", "N/A") }}</dd>
+                    <dt>Load category</dt><dd>{{ record.inputs.get("load_type", "N/A")|title }}</dd>
+                    <dt>Selected loads</dt>
+                    <dd>{{ record.inputs.get("options", [])|join(", ")|replace("_", " ")|title or "None" }}</dd>
+                  </dl>
+                </div>
 
-                <h3>Results</h3>
-                <ul>
-                    <li>Phi: {{ record.results.get("phi", "N/A") }}</li>
-                    <li>Design-strength value: {{ record.results.get("fd", "N/A") }}</li>
-                    <li>Total selected load factors: {{ record.results.get("total_load", "N/A") }}</li>
-                    <li>
-                        Utilization ratio:
-                        {{ record.results.get("utilization_ratio", "N/A") }}
-                    </li>
-                </ul>
-
-                <p>{{ record.results.get("status", "") }}</p>
+                <div>
+                  <h4>Prototype outputs</h4>
+                  <dl class="detail-list">
+                    <dt>Phi (φ)</dt><dd>{{ record.results.get("phi", "N/A") }}</dd>
+                    <dt>FD</dt><dd>{{ record.results.get("fd", "N/A") }}</dd>
+                    <dt>Total load factors</dt><dd>{{ record.results.get("total_load", "N/A") }}</dd>
+                    <dt>Utilization ratio</dt><dd>{{ record.results.get("utilization_ratio", "N/A") }}</dd>
+                  </dl>
+                  <p class="muted-text">{{ record.results.get("status", "") }}</p>
+                </div>
+              </div>
             </article>
-        {% endfor %}
-    {% else %}
-        <p>You have no saved calculations yet. Submit a calculation while logged in to start your history.</p>
-    {% endif %}
+          {% endfor %}
+        </div>
+        <p class="form-hint">Showing up to the latest 100 records.</p>
+      {% else %}
+        <div class="empty-results">
+          <div class="empty-icon">☰</div>
+          <strong>No calculations saved yet</strong>
+          <p>Log in and run a calculation to create your first history record.</p>
+          <a class="secondary-button" href="{{ url_for('home') }}">Open calculator</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <footer class="page-footer">
+      <span>StudCalc · Timber engineering prototype</span>
+      <span>Saved records are private to the owning account.</span>
+    </footer>
+  </main>
+</div>
 </body>
 </html>

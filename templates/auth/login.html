@@ -1,40 +1,63 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Log In | Stud Calculator</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in | StudCalc</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
-    <main>
-        <h1>Welcome back</h1>
-        <p>Log in to access your saved timber projects.</p>
+<body class="auth-body">
+  <main class="auth-layout">
+    <a class="brand auth-brand" href="{{ url_for('home') }}">
+      <span class="brand-mark">S<span>C</span></span>
+      <span class="brand-copy"><strong>StudCalc</strong><small>TIMBER ENGINEERING</small></span>
+    </a>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
+    <section class="panel auth-card">
+      <div class="section-kicker">ACCOUNT ACCESS</div>
+      <h1>Welcome back</h1>
+      <p class="page-subtitle">Log in to access your projects and calculation history.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-list" aria-live="polite">
             {% for category, message in messages %}
-                <p role="alert">{{ message }}</p>
+              <div class="flash-message flash-{{ category }}" role="alert">{{ message }}</div>
             {% endfor %}
-        {% endwith %}
+          </div>
+        {% endif %}
+      {% endwith %}
 
-        <form method="POST">
-            <!-- {{ csrf_token() }} -->
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label for="email">Email address</label>
-            <input id="email" name="email" type="email"
-                   autocomplete="email" required>
+      <form method="post" action="{{ url_for('auth.login') }}" class="auth-form">
+        <!-- CSRF protection applies to this login form too. -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password"
-                   autocomplete="current-password" required>
+        <label class="field" for="email">
+          <span>Email address</span>
+          <input type="email" id="email" name="email" autocomplete="email" maxlength="255" required value="{{ request.form.get('email', '') }}">
+        </label>
 
-            <button type="submit">Log in</button>
-        </form>
+        <label class="field" for="password">
+          <span>Password</span>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </label>
 
-        <p>New here?
-            <a href="{{ url_for('auth.register') }}">Create an account</a>
-        </p>
-        <p><a href="{{ url_for('home') }}">Back to calculator</a></p>
-    </main>
+        <button class="primary-button" type="submit">
+          <span>Log in</span><span class="button-arrow">→</span>
+        </button>
+      </form>
+
+      <p class="auth-switch">
+        Don't have an account?
+        <a href="{{ url_for('auth.register') }}">Create one</a>
+      </p>
+      <p class="auth-back"><a href="{{ url_for('home') }}">← Back to calculator</a></p>
+    </section>
+
+    <p class="auth-footnote">StudCalc · Timber engineering prototype</p>
+  </main>
 </body>
 </html>

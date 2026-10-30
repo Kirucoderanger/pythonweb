@@ -1,124 +1,149 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>My Projects - Stud Calculator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-            line-height: 1.5;
-        }
-
-        input, button {
-            padding: 8px;
-            margin: 4px 0;
-        }
-
-        .project {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 16px 0;
-        }
-
-        .messages {
-            padding-left: 20px;
-        }
-
-        .error {
-            color: #a21d1d;
-        }
-
-        .success {
-            color: #176b35;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saved Projects | StudCalc</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>My Saved Projects</h1>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="{{ url_for('home') }}">
+      <span class="brand-mark">S<span>C</span></span>
+      <span class="brand-copy"><strong>StudCalc</strong><small>TIMBER ENGINEERING</small></span>
+    </a>
+    <div class="sidebar-label">WORKSPACE</div>
+    <a class="nav-item" href="{{ url_for('home') }}"><span class="nav-icon">▦</span> Calculator</a>
+    <a class="nav-item" href="{{ url_for('home') }}#model"><span class="nav-icon">◇</span> 3D Preview</a>
+    <a class="nav-item" href="{{ url_for('calculation_history') }}"><span class="nav-icon">☰</span> Calculation History</a>
+    <a class="nav-item active" href="{{ url_for('projects') }}"><span class="nav-icon">✎</span> Saved Projects</a>
+    <div class="sidebar-bottom">
+      <div class="help-card">
+        <span class="help-icon">i</span>
+        <strong>Project workspace</strong>
+        <p>Saved projects retain calculator inputs for reuse. Results still require engineering verification.</p>
+      </div>
+      <div class="sidebar-footer"><span class="status-dot"></span> Local prototype <span class="version">v0.1</span></div>
+    </div>
+  </aside>
 
-    <p>
-        <a href="{{ url_for('home') }}">Calculator</a> |
-        <a href="{{ url_for('calculation_history') }}">Calculation history</a>
-    </p>
+  <main class="main-content">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">WORKSPACE / PROJECTS</div>
+        <h1>Saved projects</h1>
+        <p class="page-subtitle">Organize your timber calculations and reuse saved member inputs.</p>
+      </div>
+      <div class="topbar-right">
+        <span class="secure-icon">✓</span>
+        <span>{{ current_user.email }}</span>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="secondary-button" type="submit">Log out</button>
+        </form>
+      </div>
+    </header>
 
+    <!-- Display feedback after project actions. -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul class="messages">
-                {% for category, message in messages %}
-                    <li class="{{ category }}" role="alert">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
+      {% if messages %}
+        <div class="flash-list" aria-live="polite">
+          {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}" role="alert">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
     {% endwith %}
 
-    <section>
-        <h2>Create a project</h2>
+    <section class="panel page-panel">
+      <div class="panel-heading">
+        <div><span class="section-kicker">01 / CREATE</span><h2>Create a project</h2></div>
+      </div>
 
-        <form method="POST" action="{{ url_for('projects') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-            <label for="name">Project name</label>
-            <input
-                type="text"
-                id="name"
-                name="name"
-                maxlength="150"
-                required
-                placeholder="e.g. Living room roof"
-            >
-
-            <button type="submit">Create project</button>
-        </form>
+      <form method="post" action="{{ url_for('projects') }}" class="inline-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="field" for="new-project-name">
+          <span>Project name</span>
+          <input type="text" id="new-project-name" name="name" maxlength="150" required placeholder="e.g. Living room roof">
+        </label>
+        <button class="primary-button compact-button" type="submit">Create project <span>＋</span></button>
+      </form>
     </section>
 
-    <section>
-        <h2>Your projects</h2>
+    <section class="panel page-panel">
+      <div class="panel-heading">
+        <div><span class="section-kicker">02 / YOUR WORK</span><h2>Your projects</h2></div>
+        <span class="step-chip">{{ projects|length }} PROJECT(S)</span>
+      </div>
 
-        {% if projects %}
-            {% for project in projects %}
-                <article class="project">
-                    <h3>{{ project.name }}</h3>
+      {% if projects %}
+        <div class="project-list">
+          {% for project in projects %}
+            <article class="project-card">
+              <div class="project-card-heading">
+                <div>
+                  <h3>{{ project.name }}</h3>
+                  <p class="muted-text">Created {{ project.created_at.strftime("%Y-%m-%d %H:%M") }}</p>
+                  <p class="muted-text">
+                    {% if project.input_data %}
+                      Calculator inputs saved
+                    {% else %}
+                      No calculator inputs saved yet
+                    {% endif %}
+                  </p>
+                </div>
+                <span class="project-id">#{{ project.id }}</span>
+              </div>
 
-                    <p>
-                        Created:
-                        {{ project.created_at.strftime("%Y-%m-%d %H:%M") }}
-                    </p>
+              <!-- Loading is a POST action so the project ID is ownership-checked. -->
+              {% if project.input_data %}
+                <form method="post" action="{{ url_for('load_project', project_id=project.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="primary-button compact-button" type="submit">Load calculator inputs <span>→</span></button>
+                </form>
+              {% else %}
+                <p class="form-hint">
+                  To save inputs, open the calculator, select this project, and run a calculation.
+                </p>
+              {% endif %}
 
-                    <form
-                        method="POST"
-                        action="{{ url_for('rename_project', project_id=project.id) }}"
-                    >
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <details class="project-edit">
+                <summary>Rename project</summary>
+                <form method="post" action="{{ url_for('rename_project', project_id=project.id) }}" class="inline-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <label class="field" for="rename-{{ project.id }}">
+                    <span>New project name</span>
+                    <input type="text" id="rename-{{ project.id }}" name="name" maxlength="150" required value="{{ project.name }}">
+                  </label>
+                  <button class="secondary-button" type="submit">Save name</button>
+                </form>
+              </details>
 
-                        <label for="name-{{ project.id }}">Rename project</label>
-                        <input
-                            type="text"
-                            id="name-{{ project.id }}"
-                            name="name"
-                            maxlength="150"
-                            required
-                            value="{{ project.name }}"
-                        >
-
-                        <button type="submit">Rename</button>
-                    </form>
-
-                    <form
-                        method="POST"
-                        action="{{ url_for('delete_project', project_id=project.id) }}"
-                        onsubmit="return confirm('Delete this project? This cannot be undone.');"
-                    >
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit">Delete project</button>
-                    </form>
-                </article>
-            {% endfor %}
-        {% else %}
-            <p>You have no saved projects yet. Create your first project above.</p>
-        {% endif %}
+              <form method="post" action="{{ url_for('delete_project', project_id=project.id) }}" onsubmit="return confirm('Delete this project? Its calculation history will be retained without the project link.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="danger-button" type="submit">Delete project</button>
+              </form>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-results">
+          <div class="empty-icon">＋</div>
+          <strong>No saved projects yet</strong>
+          <p>Create your first project above. You can save calculator inputs to it later.</p>
+        </div>
+      {% endif %}
     </section>
+
+    <footer class="page-footer">
+      <span>StudCalc · Timber engineering prototype</span>
+      <span>Project data is private to the owning account.</span>
+    </footer>
+  </main>
+</div>
 </body>
 </html>
