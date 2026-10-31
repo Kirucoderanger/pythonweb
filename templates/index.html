@@ -223,7 +223,7 @@
             </div>
 
             <!-- Section B: Prototype material selection. -->
-            <div class="form-section">
+            <!--<div class="form-section">
               <div class="form-section-title">
                 <span class="section-number">B</span>
                 <div>
@@ -242,7 +242,69 @@
                   {% endfor %}
                 </select>
               </label>
+            </div>-->
+
+            
+            <!-- Engineering design standard selector -->
+            <div class="form-group">
+                <label for="design_standard_id">Design standard</label>
+
+                <select
+                    id="design_standard_id"
+                    name="design_standard_id"
+                    required
+                >
+                    {% for standard in design_standards %}
+                        <option
+                            value="{{ standard.id }}"
+                            {% if selected_standard_id|string == standard.id|string %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ standard.code }} — {{ standard.edition }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <small class="form-help">
+                    Select the design framework applicable to the project.
+                    Confirm the applicable National Annex.
+                </small>
             </div>
+
+            <!-- Timber strength class selector -->
+            <div class="form-group">
+                <label for="material">Timber strength class</label>
+
+                <select id="material" name="material" required>
+                    {% for timber_class in timber_classes %}
+                        <option
+                            value="{{ timber_class.strength_class }}"
+                            data-property-standard="{{ timber_class.property_standard }}"
+                            data-material-type="{{ timber_class.material_type }}"
+                            data-source-status="{{ timber_class.source_status }}"
+                            {% if selected_material == timber_class.strength_class %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ timber_class.strength_class }}
+                            — {{ timber_class.description }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <small class="form-help">
+                    Material properties are from the selected property-class catalogue.
+                    Mock records must be verified before engineering use.
+                </small>
+
+                <div class="catalogue-warning" role="status">
+                    <strong>Mock catalogue:</strong>
+                    strength-class properties are not yet verified against your standard
+                    documentation.
+                </div>
+            </div>
+
 
             <!-- Section C: Load category and selectable load factors. -->
             <div class="form-section">

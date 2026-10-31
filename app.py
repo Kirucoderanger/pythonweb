@@ -18,7 +18,7 @@ from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import select, update
 
 from extensions import db, login_manager, migrate
-from models import CalculationHistory, SavedProject, User
+from models import CalculationHistory, SavedProject, User, DesignStandard, TimberStrengthClass
 
 # Load local environment variables from .env during development.
 load_dotenv()
@@ -28,6 +28,7 @@ load_dotenv()
 # ---------------------------------------------------------------------
 
 app = Flask(__name__)
+
 
 # Never use a hard-coded secret key in a deployed application.
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
@@ -81,6 +82,52 @@ def load_user(user_id):
         return None
 
 
+#Inject Euro Standards and Timber Strength to the UI
+@app.context_processor
+def inject_engineering_catalogue():
+    """Provide database-backed standards and grades to the calculator UI."""
+
+    # Avoid querying the engineering catalogue on unrelated pages.
+    if request.endpoint != "home":
+        return {}
+
+    standards = (
+        DesignStandard.query
+        .filter_by(is_active=True)
+        .order_by(DesignStandard.id.asc())
+        .all()
+    )
+
+    timber_classes = (
+        TimberStrengthClass.query
+        .filter_by(is_active=True)
+        .order_by(TimberStrengthClass.strength_class.asc())
+        .all()
+    )
+    
+    for timber in timber_classes:
+            print (timber.strength_class)
+
+    default_standard = next(
+        (standard for standard in standards if standard.is_default),
+        standards[0] if standards else None,
+    )
+
+    selected_standard_id = request.values.get(
+        "design_standard_id",
+        str(default_standard.id) if default_standard else "",
+    )
+
+    selected_material = request.values.get("material", "C24")
+
+    return {
+        "design_standards": standards,
+        "timber_classes": timber_classes,
+        "selected_standard_id": selected_standard_id,
+        "selected_material": selected_material,
+    }
+        
+
 # ---------------------------------------------------------------------
 # Calculator configuration
 # ---------------------------------------------------------------------
@@ -124,6 +171,27 @@ MATERIAL_STRENGTHS = {
     "T-35": 35,
     "MCG-15": 15,
 }
+
+
+def material_list ():
+    timber_list = (
+        TimberStrengthClass.query
+        
+    )
+    
+    for timber in timber_list:
+        print (timber_list)
+    
+    return {
+            "timber_list": timber_list,
+            }
+
+
+
+
+
+
+
 
 DEFAULT_FORM_VALUES = {
     "project_id": "",
@@ -193,7 +261,9 @@ def render_calculator(
 # ---------------------------------------------------------------------
 
 @app.route("/", methods=["GET", "POST"])
-def home():
+def home():   
+    
+    
     """Display the calculator and process submitted calculations."""
 
     if request.method == "GET":
@@ -205,9 +275,23 @@ def home():
             form_values.update(saved_values)
 
         return render_calculator(form_values)
+    
+    
 
     # Capture form values before validation so the user does not lose them.
     form_values = get_form_values(request.form)
+    
+    timber_classes = (
+            TimberStrengthClass.query
+            .filter_by(is_active=True)
+            .order_by(TimberStrengthClass.strength_class.asc())
+            .all()
+        )
+    timber_list = [] 
+    for timber in timber_classes:
+                #print (timber.strength_class)
+                timber_list.append(str(timber.strength_class).strip())
+    
 
     try:
         # Parse the numeric inputs.
@@ -229,15 +313,52 @@ def home():
                 "Length, depth, width, K₂, and K mode must be greater than zero."
             )
 
+
+        # Validate the selected design standard and timber strength class.
+        try:
+            design_standard_id = int(request.form.get("design_standard_id", ""))
+        except (TypeError, ValueError):
+            flash("Please select a valid design standard.", "error")
+            return redirect(url_for("home"))
+
+        selected_standard = db.session.get(
+            DesignStandard,
+            design_standard_id,
+        )
+
+        selected_timber_class = TimberStrengthClass.query.filter_by(
+            strength_class=request.form.get("material", ""),
+            is_active=True,
+        ).first()
+
+        if selected_standard is None or not selected_standard.is_active:
+            flash("The selected design standard is unavailable.", "error")
+            return redirect(url_for("home"))
+
+        if selected_timber_class is None:
+            flash("The selected timber strength class is unavailable.", "error")
+            return redirect(url_for("home"))
+
         # Validate the selected load category.
         load_type = form_values["load_type"]
         if load_type not in LOAD_FACTORS:
             raise ValueError("Please select a valid load category.")
 
         # Validate the selected material.
-        material = form_values["material"]
-        if material not in MATERIAL_STRENGTHS:
-            raise ValueError("Please select a valid material.")
+        """timber_classes = (
+                TimberStrengthClass.query
+                .filter_by(is_active=True)
+                .order_by(TimberStrengthClass.strength_class.asc())
+                .all()
+            )"""
+        
+        """   material = str(form_values["material"]).strip()
+        #for timber in timber_classes:
+            #print (timber.strength_class)
+        print (material)
+        #if material not in MATERIAL_STRENGTHS:
+        if material not in timber_list.strip():
+            raise ValueError("Please select a valid material.")"""
 
         # Validate the load checkboxes.
         selected_loads = form_values["options"]
@@ -253,9 +374,20 @@ def home():
         # Retrieve the prototype factors for the selected category.
         factors = LOAD_FACTORS[load_type]
         total_load = sum(factors[name] for name in selected_loads)
+        
+        
+        # Selected catalogue properties.
+        material = selected_timber_class.strength_class
+        strength = selected_timber_class.fc_0_k_mpa
+        e_mean = selected_timber_class.e_0_mean_mpa
+
+        # IMPORTANT:
+        # "strength" and "e_mean" are material properties, not a completed
+        # Eurocode 5 design resistance calculation.
+        # Do not label the legacy prototype's output as a Eurocode pass/fail result.
 
         # Retrieve the prototype material properties.
-        strength = MATERIAL_STRENGTHS[material]
+        #strength = MATERIAL_STRENGTHS[material]
         E0 = strength - 9
         G0 = strength * 0.5
         gama_factor = 1.5
